@@ -45,6 +45,8 @@ class BaseDevTest extends AbstractIntegrationTest {
     final String SERVER_NOT_UPDATED = "CWWKG0018I: The server configuration was not updated.";
     final String COMPILATION_SUCCESSFUL = "Source compilation was successful.";
     final String COMPILATION_ERRORS = "Source compilation had errors.";
+    final String INVALID_EE_VERSION_MSG = "The Java EE or Jakarta EE version number specified in the build file is not supported for feature generation";
+    final String INVALID_MP_VERSION_MSG = "The MicroProfile version number specified in the build file is not supported for feature generation";
 
     static File targetDir;
     static BufferedWriter writer;

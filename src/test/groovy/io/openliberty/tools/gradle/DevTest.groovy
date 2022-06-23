@@ -275,6 +275,56 @@ class DevTest extends BaseDevTest {
         tagLog("##generateFeatureTest end");
     }
 
+   @Test
+   public void scannerInvalidEETest() throws Exception {
+      tagLog("##scannerInvalidEETest start");
+      // TODO: Remove this code once issue 1554 is fixed
+      Thread.sleep(11500); // wait for devmode to complete start-up if this is the first test case
+      String goodDep = "jakarta.platform:jakarta.jakartaee-api:8.0.0";
+      String badDep  = "jakarta.platform:jakarta.jakartaee-api:99.0.0";
+      File buildFile = new File(buildDir, buildFilename);
+
+      try {
+         int msgCount = countOccurrences(INVALID_EE_VERSION_MSG, logFile);
+         replaceString(goodDep, badDep, buildFile);
+         assertTrue(verifyLogMessage(9000, INVALID_EE_VERSION_MSG, logFile, ++msgCount));
+      } finally {
+         // restore buildFile
+         replaceString(badDep, goodDep, buildFile);
+         Thread.sleep(11500);
+      }
+      int systemUpdateCount = countOccurrences(SERVER_CONFIG_SUCCESS, errFile);
+      replaceString(badDep, goodDep, buildFile);
+      assertTrue(verifyLogMessage(9000, SERVER_CONFIG_SUCCESS, errFile, ++systemUpdateCount));
+
+      tagLog("##scannerInvalidEETest end");
+   }
+
+   @Test
+   public void scannerInvalidMPTest() throws Exception {
+      tagLog("##scannerInvalidMPTest start");
+      // TODO: Remove this code once issue 1554 is fixed
+      Thread.sleep(11500); // wait for devmode to complete start-up if this is the first test case
+      String goodDep = "org.eclipse.microprofile:microprofile:3.2";
+      String badDep  = "org.eclipse.microprofile:microprofile:99.1";
+      File buildFile = new File(buildDir, buildFilename);
+
+      try {
+         int msgCount = countOccurrences(INVALID_MP_VERSION_MSG, logFile);
+         replaceString(goodDep, badDep, buildFile);
+         assertTrue(verifyLogMessage(9000, INVALID_MP_VERSION_MSG, logFile, ++msgCount));
+      } finally {
+         // restore buildFile
+         replaceString(badDep, goodDep, buildFile);
+         Thread.sleep(11500);
+      }
+      int systemUpdateCount = countOccurrences(SERVER_CONFIG_SUCCESS, errFile);
+      replaceString(badDep, goodDep, buildFile);
+      assertTrue(verifyLogMessage(9000, SERVER_CONFIG_SUCCESS, errFile, ++systemUpdateCount));
+
+      tagLog("##scannerInvalidMPTest end");
+   }
+
     @AfterClass
     public static void cleanUpAfterClass() throws Exception {
         String stdout = getContents(logFile, "Dev mode std output");
