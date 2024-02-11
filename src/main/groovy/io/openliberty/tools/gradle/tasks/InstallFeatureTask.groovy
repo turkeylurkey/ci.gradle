@@ -51,7 +51,9 @@ class InstallFeatureTask extends AbstractFeatureTask {
 		boolean isClosedLiberty = false;
         if (containerName == null) {
             propertiesList = InstallFeatureUtil.loadProperties(getInstallDir(project))
+            logger.warn("propertiesList="+propertiesList);
             openLibertyVersion = InstallFeatureUtil.getOpenLibertyVersion(propertiesList)
+            logger.warn("openLibertyVersion="+openLibertyVersion);
 			isClosedLiberty = InstallFeatureUtil.isClosedLiberty(propertiesList)
 
             boolean skipBetaInstallFeatureWarning = Boolean.parseBoolean(System.getProperty(DevUtil.SKIP_BETA_INSTALL_WARNING))
@@ -64,7 +66,9 @@ class InstallFeatureTask extends AbstractFeatureTask {
         }
     
         def pluginListedEsas = getPluginListedFeatures(true)
+        logger.warn("pluginListedEsas="+pluginListedEsas);
 		def additionalJsons = getAdditionalJsonList();
+        logger.warn("additionalJsons="+additionalJsons);
         InstallFeatureUtil util = getInstallFeatureUtil(pluginListedEsas, propertiesList, openLibertyVersion, containerName, additionalJsons)
 
 		if(!pluginListedEsas.isEmpty() && isClosedLiberty) {
@@ -73,9 +77,11 @@ class InstallFeatureTask extends AbstractFeatureTask {
 
         // if getInstallFeatureUtil failed to retrieve an InstallFeatureUtil instance for util, then features are installed via ant
         if(installFeaturesFromAnt) {
+            logger.warn("installFeaturesFromAnt");
             installFeatureFromAnt();
         }
         else {
+            logger.warn("install features util");
             Set<String> featuresToInstall = getSpecifiedFeatures(containerName);
             util.installFeatures(server.features.acceptLicense, new ArrayList<String>(featuresToInstall))
         }

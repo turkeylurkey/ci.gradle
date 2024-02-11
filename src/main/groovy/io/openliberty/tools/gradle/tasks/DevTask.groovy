@@ -687,8 +687,10 @@ class DevTask extends AbstractFeatureTask {
 
         @Override
         public void installFeatures(File configFile, File serverDir, boolean generateFeatures) {
+            logger.info("DevTask.installFeatures start");
             ServerFeatureUtil servUtil = getServerFeatureUtil(true, libertyDirPropertyFiles);
             Set<String> features = servUtil.getServerFeatures(serverDir, libertyDirPropertyFiles);
+            logger.info("DevTask.installFeatures getServerFeatures()="+features);
 
             if (features == null) {
                 return;
