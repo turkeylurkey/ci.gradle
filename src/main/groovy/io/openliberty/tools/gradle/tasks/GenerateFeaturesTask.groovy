@@ -71,8 +71,7 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
 
     @TaskAction
     void generateFeatures() {
-        binaryScanner = getBinaryScannerJarFromRepository();
-        BinaryScannerHandler binaryScannerHandler = new BinaryScannerHandler(binaryScanner);
+        BinaryScannerHandler binaryScannerHandler = new BinaryScannerHandler();
 
         if (optimize == null) {
             optimize = DEFAULT_OPTIMIZE;
@@ -258,27 +257,6 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
     }
 
     /**
-     * Gets the binary scanner jar file from the local cache.
-     * Downloads it first from connected repositories such as Maven Central if a newer release is available than the cached version.
-     * Note: Maven updates artifacts daily by default based on the last updated timestamp. Users should use 'mvn -U' to force updates if needed.
-     *
-     * @return The File object of the binary-app-scanner.jar in the local cache.
-     * @throws PluginExecutionException indicates the binary-app-scanner.jar could not be found
-     */
-    private File getBinaryScannerJarFromRepository() throws PluginExecutionException {
-        try {
-            return ArtifactDownloadUtil.downloadBuildArtifact(project, BINARY_SCANNER_MAVEN_GROUP_ID, BINARY_SCANNER_MAVEN_ARTIFACT_ID, BINARY_SCANNER_MAVEN_TYPE, BINARY_SCANNER_MAVEN_VERSION);
-        } catch (Exception e) {
-            throw new PluginExecutionException("Could not retrieve the artifact " + BINARY_SCANNER_MAVEN_GROUP_ID + "."
-                    + BINARY_SCANNER_MAVEN_ARTIFACT_ID
-                    + " needed for generateFeatures. Ensure you have a connection to Maven Central or another repository that contains the "
-                    + BINARY_SCANNER_MAVEN_GROUP_ID + "." + BINARY_SCANNER_MAVEN_ARTIFACT_ID
-                    + ".jar configured in your build.gradle.",
-                    e);
-        }
-    }
-
-    /**
      * Return specificFile if it exists; otherwise check for a file with the requested name in the
      * configDirectory and return it if it exists. Null is returned if a file does not exist in 
      * either location.
@@ -393,10 +371,6 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
 
     // Define the logging functions of the binary scanner handler and make it available in this plugin
     private class BinaryScannerHandler extends BinaryScannerUtil {
-        BinaryScannerHandler(File scannerFile) {
-            super(scannerFile);
-        }
-
         @Override
         public void debug(String msg) {
             logger.debug(msg);
