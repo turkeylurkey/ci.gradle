@@ -167,7 +167,10 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
             }
             eeVersion = getEEVersion(project);
             mpVersion = getMPVersion(project);
-
+            if (eeVersion == null && mpVersion == null) {
+                logger.warn("This application does not specify any umbrella dependencies in the build file or platforms in the server.xml. " +
+                    "The generate features goal can perform more accurately if the application specifies the specific Java EE, Jakarta EE or MicroProfile version that the application uses.");
+            }
             String logLocation = project.getBuildDir().getCanonicalPath();
             String eeVersionArg = composeEEVersion(eeVersion);
             String mpVersionArg = composeMPVersion(mpVersion);
