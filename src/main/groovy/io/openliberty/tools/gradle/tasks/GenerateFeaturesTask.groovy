@@ -45,11 +45,9 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
             + "please remove all versionless features from your server configuration. " \
             + "If you would like to continue using versionless features, you can turn off auto-generation " \
             + "of features by using the g hot key to toggle off auto-generation of features.";
-    public static final String VERSIONLESS_FEATURE_DETECTED = "Versionless features detected in the server configuration. " \
-            + "If you would like to use auto-generation of features, " \
-            + "remove all versionless features from your server configuration. " \
-            + "If you would like to continue using versionless features, you cannot use " \
-            + "the generateFeatures task.";
+    public static final String VERSIONLESS_FEATURE_DETECTED = "Versionless features are detected in the server configuration. " \
+            + "If you would like to use auto-generation of features, remove all versionless features from your server configuration. " \
+            + "If you would like to continue using versionless features, you cannot use the generateFeatures task.";
 
     // Default value of the optimize task option
     private static final boolean DEFAULT_OPTIMIZE = true;
