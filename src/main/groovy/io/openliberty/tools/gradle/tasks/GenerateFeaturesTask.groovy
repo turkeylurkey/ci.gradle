@@ -1,5 +1,5 @@
 /**
- * (C) Copyright IBM Corporation 2021, 2025.
+ * (C) Copyright IBM Corporation 2021, 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,15 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
     public static final String GENERATED_FEATURES_COMMENT = "The following features were generated based on API usage detected in your application";
     public static final String NO_NEW_FEATURES_COMMENT = "No additional features generated";
     public static final String NO_CLASS_FILES_WARNING = "Could not find class files to generate features against. Liberty features will not be generated. Ensure your project has first been compiled.";
+    public static final String VERSIONLESS_FEATURE_DETECTED_DEVMODE = "If you would like to continue using auto-generation of features, " \
+            + "please remove all versionless features from your server configuration. " \
+            + "If you would like to continue using versionless features, you can turn off auto-generation " \
+            + "of features by using the g hot key to toggle off auto-generation of features.";
+    public static final String VERSIONLESS_FEATURE_DETECTED = "Versionless features detected in the server configuration. " \
+            + "If you would like to use auto-generation of features, " \
+            + "remove all versionless features from your server configuration. " \
+            + "If you would like to continue using versionless features, you cannot use " \
+            + "the generate-features mojo.";
 
     // Default value of the optimize task option
     private static final boolean DEFAULT_OPTIMIZE = true;
@@ -203,6 +212,14 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
             throw new GradleException(String.format(BinaryScannerUtil.BINARY_SCANNER_INVALID_COMBO_MESSAGE, eeVersion, mpVersion));
         } catch (BinaryScannerUtil.IllegalTargetException illegalTargets) {
             String messages = buildInvalidArgExceptionMessage(illegalTargets.getEELevel(), illegalTargets.getMPLevel(), eeVersion, mpVersion);
+            throw new GradleException(messages);
+        } catch (BinaryScannerUtil.VersionlessFeatureDetectedException versionless) {
+            String messages;
+            if (isDevMode) {
+                messages = VERSIONLESS_FEATURE_DETECTED_DEVMODE;
+            } else {
+                messages = VERSIONLESS_FEATURE_DETECTED;
+            };
             throw new GradleException(messages);
         } catch (PluginExecutionException x) {
             // throw an error when there is a problem not caught in runBinaryScanner()
