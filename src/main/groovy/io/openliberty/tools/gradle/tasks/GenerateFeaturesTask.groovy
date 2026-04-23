@@ -49,7 +49,7 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
             + "If you would like to use auto-generation of features, " \
             + "remove all versionless features from your server configuration. " \
             + "If you would like to continue using versionless features, you cannot use " \
-            + "the generate-features mojo.";
+            + "the generateFeatures task.";
 
     // Default value of the optimize task option
     private static final boolean DEFAULT_OPTIMIZE = true;
