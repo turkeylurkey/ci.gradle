@@ -1384,6 +1384,78 @@ class DevTask extends AbstractFeatureTask {
                     // runGradleTask(gradleBuildLauncher, 'deploy'); // copy config to server dir
                     generateFeaturesOnStartup(gradleBuildLauncher);
                 }
+                // Optimize generate features on startup
+                runGradleTask(gradleBuildLauncher, 'compileJava', 'processResources'); // ensure class files exist
+
+                String generatedFileCanonicalPath;
+                try {
+                    generatedFileCanonicalPath = new File(configDirectory,
+                            BinaryScannerUtil.GENERATED_FEATURES_FILE_PATH).getCanonicalPath();
+                } catch (IOException e) {
+                    generatedFileCanonicalPath = new File(configDirectory,
+                            BinaryScannerUtil.GENERATED_FEATURES_FILE_PATH).toString();
+                }
+                if (generateToSrc) {
+                    logger.info(
+                            "The source configuration directory will be modified. Features will automatically be generated in a new file: "
+                                    + generatedFileCanonicalPath);
+                }
+                try {
+                    runGenerateFeaturesTask(gradleBuildLauncher, true);
+                } catch (BuildException e) {
+                    Exception pluginEx = getPluginExecutionException(e);
+                    if (pluginEx != null) {
+                        // PluginExecutionException indicates that the binary scanner jar could not be found
+                        logger.error(pluginEx.getMessage() + ".\nDisabling the automatic generation of features.");
+                        generateFeatures = false;
+                    } else if (e.getCause() != null) {
+                        throw new BuildException(e.getCause().getMessage() + " To disable the automatic generation of features, type 'g' and press 'Enter' once dev mode is running or restart dev mode with --generateFeatures=false.", e.getCause());
+                    } else {
+                        throw new BuildException("Failed to run the generateFeaturesTask. To disable the automatic generation of features, start dev mode with --generateFeatures=false.", e)
+                    }
+                }
+            }
+            if (!container) {
+                boolean isNewInstallation = true;
+                // Check to see if Liberty was already installed and set flag accordingly.
+                if (serverInstallDir != null) {
+                    try {
+                        File installDirectoryCanonicalFile = serverInstallDir.getCanonicalFile();
+                        // Quick check to see if a Liberty installation exists at the installDirectory
+                        File file = new File(installDirectoryCanonicalFile, "lib/ws-launch.jar");
+                        if (file.exists()) {
+                            isNewInstallation = false;
+                            logger.info("Dev mode is using an existing installation.");
+                        }
+                    } catch (IOException e) {
+                    }
+                }
+
+                // if skipInstallFeature is set to true, skip installFeature task unless it is a new installation
+                if (skipInstallFeature) {
+                    logger.debug("skipInstallFeature flag is set to true");
+                }
+                
+                if (!isNewInstallation) {
+                    // if the install dir changed or this is the first dev mode run on this project, need to give installLiberty task 
+                    // a chance to check validity of installation and update info in liberty plugin config xml file.
+                    if (!isInstallDirChanged(project, serverInstallDir)) {
+                        logger.info("Skipping installLiberty task for existing installation.")
+                        gradleBuildLauncher.addArguments("--exclude-task", "installLiberty"); // skip installing Liberty at startup since it is the same installation as previous dev mode run
+                    }
+                    if (skipInstallFeature) {
+                        logger.info("Skipping installFeature task due to skipInstallFeature configuration.")
+                        gradleBuildLauncher.addArguments("--exclude-task", "installFeature"); // skip installing features at startup since flag was set
+                    }
+                }
+                addLibertyRuntimeProperties(gradleBuildLauncher);
+                runGradleTask(gradleBuildLauncher, 'libertyCreate');
+
+                if (!skipInstallFeature || isNewInstallation) {
+                    // suppress extra install feature warnings (one would have shown up already from the libertyCreate task on the line above)
+                    gradleBuildLauncher.addArguments("-D" + DevUtil.SKIP_BETA_INSTALL_WARNING + "=" + Boolean.TRUE.toString());
+                    runInstallFeatureTask(gradleBuildLauncher, null);
+                }
             } else {
                 createLibertyOnStartup(gradleBuildLauncher, serverInstallDir);
             }
