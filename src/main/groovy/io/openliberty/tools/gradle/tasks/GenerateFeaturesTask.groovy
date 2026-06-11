@@ -339,14 +339,9 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
         logger.debug("Features detected by feature generator which are not in server.xml : " + missingLibertyFeatures);
 
         // generate the new features into an xml file in the correct context directory
-        def generatedXmlFile;
-        if (internalDevMode) {
-            // create a temp dir in the build directory for the generated-features.xml in dev mode
-            // The ServerConfigXmlDocument will create the directories if needed.
-            generatedXmlFile = new File(project.getLayout().getBuildDirectory().getAsFile().get(), GENERATED_FEATURES_TEMP_PATH);
-        } else {
-            generatedXmlFile = new File(generationContextDir, GENERATED_FEATURES_FILE_PATH);
-        }
+        // The ServerConfigXmlDocument class will create the directories if needed.
+        File generatedXmlFile = new File(generationOutputDir, GENERATED_FEATURES_FILE_PATH);
+
         // For standalone goal (not dev mode) with generateToSrc=true, also write to server dir if it exists
         File serverDirectory = getServerDir(project);
         boolean shouldWriteToServerDir = !isDevMode && generateToSrc && (serverDirectory != null) && serverDirectory.exists();
