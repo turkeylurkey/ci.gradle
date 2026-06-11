@@ -305,7 +305,7 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
         } catch (FeatureGeneratorUtil.IllegalTargetException illegalTargets) {
             String messages = buildInvalidArgExceptionMessage(illegalTargets.getEELevel(), illegalTargets.getMPLevel(), eeVersion, mpVersion);
             throw new GradleException(messages);
-        } catch (BinaryScannerUtil.VersionlessFeatureDetectedException versionless) {
+        } catch (FeatureGeneratorUtil.VersionlessFeatureDetectedException versionless) {
             throw new GradleException(isDevMode ? VERSIONLESS_FEATURE_DETECTED_DEVMODE : VERSIONLESS_FEATURE_DETECTED);
         } catch (PluginExecutionException x) {
             // throw an error when there is a problem not caught in runFeatureGenerator()
