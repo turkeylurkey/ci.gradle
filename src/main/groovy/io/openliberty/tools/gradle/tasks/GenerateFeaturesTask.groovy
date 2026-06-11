@@ -33,6 +33,7 @@ import org.gradle.api.tasks.options.Option
 import org.gradle.api.logging.LogLevel
 import org.xml.sax.SAXException
 import org.w3c.dom.Element;
+import org.apache.maven.artifact.versioning.ComparableVersion
 
 import javax.xml.parsers.ParserConfigurationException
 import javax.xml.transform.TransformerException
@@ -598,31 +599,41 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
     private static final String JAKARTA_PLATFORM_NAME="jakartaee-"; // jakartaee-10.0 etc.
     private static final String JAVAEE_PLATFORM_NAME="javaee-"; // javaee-7.0 etc.
     protected getEEVersion(Object project, ServerFeatureUtil servUtil) {
-        String eeVersion = null
+        Set<String> eeVersionsDetected = new HashSet<String>();
+        logger.warn("getEEVersion")
+        // compileClasspath is the correct scope for the dependencies so no need to check scope separately like in Maven
         project.configurations.compileClasspath.allDependencies.each {
             dependency ->
                 if ((dependency.group.equals("javax") && dependency.name.equals("javaee-api")) ||
                     (dependency.group.equals("jakarta.platform") &&
-                        dependency.name.equals("jakarta.jakartaee-api"))) {
-                    String newVersion = dependency.version
-                    if (newVersion != null && isLatestVersion(eeVersion, newVersion)) {
-                        eeVersion = newVersion
+                        (dependency.name.equals("jakarta.jakartaee-api") ||
+                        dependency.name.equals("jakarta.jakartaee-web-api") ||
+                        dependency.name.equals("jakarta.jakartaee-core-api") ||
+                        dependency.name.equals("jakarta.jakartaee-bom") ||
+                        dependency.name.equals("jakartaee-api-parent")))) {
+                    if (dependency.version != null) {
+                        logger.debug("Java and/or Jakarta EE umbrella dependency version: " + dependency.version + " found in project");
+                        logger.warn ("Java and/or Jakarta EE umbrella dependency version: " + dependency.version + " found in project");
+                        eeVersionsDetected.add(dependency.version);
                     }
                 }
         }
-        // if the dependencies do not indicate the Jakarta version then reference the platform specified in server.xml
-        // E.g. pom may specify jakarta.persistence:jakarta.persistence-api:2.2.3 to compile but does not specify Jakarta 9.1
-        if (eeVersion == null) {
-            Set<String> platformVersions = new HashSet<String>();
+        // If there are no dependencies try looking at server.xml for platform entries
+        if (eeVersionsDetected.size() == 0) {
             // Gather all Jakarta EE platform versions
-            platformVersions.addAll(getAllPlatformVersions(JAKARTA_PLATFORM_NAME, servUtil));
+            eeVersionsDetected.addAll(getAllPlatformVersions(JAKARTA_PLATFORM_NAME, servUtil));
             // Gather all Java EE platform versions
-            platformVersions.addAll(getAllPlatformVersions(JAVAEE_PLATFORM_NAME, servUtil));
-            // Find the maximum version from all platforms
-            eeVersion = findMaxVersion(platformVersions);
+            eeVersionsDetected.addAll(getAllPlatformVersions(JAVAEE_PLATFORM_NAME, servUtil));
+            // return the maximum version from all platforms
+        }
+        String eeVersion = findMaxVersion(eeVersionsDetected);
+        if (eeVersionsDetected.size() > 1) {
+            logger.lifecycle("Multiple Java EE and/or Jakarta EE versions found, using the latest version (" +
+                eeVersion + ") found to generate Liberty features.");
         }
         return eeVersion;
     }
+
     /**
      * Returns the latest MicroProfile major version detected in the project dependencies
      *
@@ -631,30 +642,67 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
      */
     private static final String MP_PLATFORM_NAME="microProfile-"; // microProfile-7.0 etc.
     protected getMPVersion(Object project, ServerFeatureUtil servUtil) {
-        String mpVersion = null
+        Set<String> mpVersionsDetected = new HashSet<String>();
         project.configurations.compileClasspath.allDependencies.each {
             dependency ->
                 if (dependency.group.equals("org.eclipse.microprofile") &&
                         dependency.name.equals("microprofile")) {
-                    String newVersion = dependency.version
-                    if (newVersion != null && isLatestVersion(mpVersion, newVersion)) {
-                        mpVersion = newVersion;
+                    if (dependency.version != null) {
+                        logger.debug("MicroProfile umbrella dependency version: " + dependency.version + " found in project");
+                        logger.warn ("MicroProfile umbrella dependency version: " + dependency.version + " found in project");
+                        mpVersionsDetected.add(dependency.version);
                     }
                 }
         }
-        if (mpVersion == null) {
-            mpVersion = findMaxVersion(getAllPlatformVersions(MP_PLATFORM_NAME, servUtil));
+        // If there are no dependencies try looking at server.xml for platform entries
+        if (mpVersionsDetected.size() == 0) {
+            mpVersionsDetected.addAll(getAllPlatformVersions(MP_PLATFORM_NAME, servUtil));
+        }
+        String mpVersion = findMaxVersion(mpVersionsDetected);
+        if (mpVersionsDetected.size() > 1) {
+            logger.lifecycle("Multiple MicroProfile versions found, using the latest version (" +
+                mpVersion + ") found to generate Liberty features.");
         }
         return mpVersion;
     }
 
-    // Return true if the newVer > currentVer
-    protected static boolean isLatestVersion(String currentVer, String newVer) {
-        if (currentVer == null || currentVer.isEmpty())  {
-            return true;
+    /**
+     * Find the highest version number in the set of strings
+     * returns null if the set of strings is empty
+    */
+    private String findMaxVersion(Set<String> versionsDetected) {
+        String maxVersion = null;
+        if (!versionsDetected.isEmpty()) {
+            maxVersion = versionsDetected.iterator().next();
+            if (versionsDetected.size() == 1) {
+                return maxVersion;
+            }
+            ComparableVersion cMaxVersion = new ComparableVersion(maxVersion);
+            // if multiple EE/MP versions are found across multiple modules, return the latest version
+            for (String ver : versionsDetected) {
+                ComparableVersion cVer = new ComparableVersion(ver);
+                logger.debug("GenerateFeraturesTask.findMaxVersion, ver=" + ver);
+                if (cVer.compareTo(cMaxVersion) > 0) {
+                    maxVersion = ver;
+                    cMaxVersion = cVer;
+                }
+            }
         }
-        // Comparing versions: mp4 > mp3.3 > mp3.0 > mp3
-        return (currentVer.compareTo(newVer) < 0);
+        return maxVersion;
+    }
+
+    // Retrieve all platforms from the server.xml and related files that match the platform specified.
+    // Platforms have the format jakartaee-10.0 or microProfile-7.1. Return all version numbers (10.0, 7.1, etc.) that match.
+    private Set<String> getAllPlatformVersions(String platformName, ServerFeatureUtil servUtil) {
+        Set<String> platformVersions = new HashSet<String>();
+        Set<String> platforms = getServerPlatforms(servUtil, null, false);
+        for (String p : platforms) {
+            logger.debug("GenerateFeaturesMojo.getAllPlatformVersions, searching for platform:" + platformName + " platform=" + p);
+            if (p.startsWith(platformName)) {
+                platformVersions.add(p.substring(platformName.length()));
+            }
+        }
+        return platformVersions;
     }
 
     // Retrieve all platforms from the server.xml and related files that match the platform specified.
