@@ -705,20 +705,6 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
         return platformVersions;
     }
 
-    // Retrieve all platforms from the server.xml and related files that match the platform specified.
-    // Platforms have the format jakartaee-10.0 or microProfile-7.1. Return all version numbers (10.0, 7.1, etc.) that match.
-    private Set<String> getAllPlatformVersions(String platformName, ServerFeatureUtil servUtil) {
-        Set<String> platformVersions = new HashSet<String>();
-        Set<String> platforms = getServerPlatforms(servUtil, null, false);
-        for (String p : platforms) {
-            logger.debug("GenerateFeaturesTask.getAllPlatformVersions, searching for platform:" + platformName + " platform=" + p);
-            if (p.startsWith(platformName)) {
-                platformVersions.add(p.substring(platformName.length()));
-            }
-        }
-        return platformVersions;
-    }
-
     // Define the logging functions of the feature generator handler and make it available in this plugin
     private class FeatureGenHandler extends FeatureGeneratorUtil {
         FeatureGenHandler(File generatorFile) {
