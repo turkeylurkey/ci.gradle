@@ -61,6 +61,8 @@ class GenerateFeaturesTask extends AbstractFeatureTask {
     private static final boolean DEFAULT_OUTPUT = false;
     // Default value of the useTempDirAsContext option
     private static final boolean DEFAULT_CONTEXT = false;
+    // Default value of the isDevMode option (task called by dev mode)
+    private static final boolean DEFAULT_ISDEVMODE = false;
 
     /**
      * Generating features is performed relative to a certain server. We only generate features
